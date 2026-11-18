@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Rastreio de cargas</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f5f7; --card: #fff; --text: #1a1d23; --muted: #667085;
+    --line: #e5e7eb; --brand: #1d4ed8; --brand-dark: #1e40af;
+    --ok: #15803d; --ok-bg: #e7f6ec; --run: #1d4ed8; --run-bg: #e8effd;
+    --warn: #b45309; --warn-bg: #fef3c7; --off: #667085; --off-bg: #eef0f3;
+    --err: #b42318; --err-bg: #fdecea;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 80px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .logo { width: 40px; height: 40px; border-radius: 10px; background: var(--brand); color: #fff; display: grid; place-items: center; flex: none; }
+  h1 { font-size: 22px; line-height: 1.2; margin: 0; font-weight: 700; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  .painel, .item { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+  label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+  .campo { display: flex; gap: 10px; }
+  input[type=text] { flex: 1; min-width: 0; height: 50px; padding: 0 14px; border: 1.5px solid #cfd4dc; border-radius: 10px; background: #fff; color: var(--text); font: inherit; font-size: 18px; }
+  input[type=text]::placeholder { color: #98a2b3; }
+  input[type=text]:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(29,78,216,.15); }
+  button.principal { min-height: 50px; padding: 0 22px; border: 0; border-radius: 10px; background: var(--brand); color: #fff; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  button.principal:hover:not(:disabled) { background: var(--brand-dark); }
+  button.principal:disabled { opacity: .6; cursor: default; }
+  .ajuda { margin: 10px 0 0; color: var(--muted); font-size: 13.5px; }
+  .recentes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+  .recentes[hidden] { display: none; }
+  .recentes span { color: var(--muted); font-size: 13.5px; }
+  .chip { border: 1px solid var(--line); background: #f8f9fb; color: var(--text); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  .chip:hover { border-color: var(--brand); color: var(--brand); }
+  .aviso { background: var(--err-bg); color: var(--err); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px; }
+  .item { margin-bottom: 14px; }
+  .linha { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .nf { font-size: 18px; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .pill { flex: none; font-size: 13.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; white-space: nowrap; }
+  .pill.ok { color: var(--ok); background: var(--ok-bg); }
+  .pill.run { color: var(--run); background: var(--run-bg); }
+  .pill.warn { color: var(--warn); background: var(--warn-bg); }
+  .pill.off { color: var(--off); background: var(--off-bg); }
+  .pill.err { color: var(--err); background: var(--err-bg); }
+  .stepper { list-style: none; display: grid; grid-template-columns: repeat(4,1fr); margin: 22px 0 6px; padding: 0; }
+  .stepper li { position: relative; text-align: center; font-size: 12.5px; color: var(--muted); }
+  .stepper li::before { content: ""; position: absolute; top: 11px; left: -50%; width: 100%; height: 3px; background: var(--line); }
+  .stepper li:first-child::before { display: none; }
+  .stepper .dot { position: relative; z-index: 1; display: grid; place-items: center; width: 24px; height: 24px; margin: 0 auto 6px; border-radius: 50%; background: #fff; border: 2px solid var(--line); font-size: 13px; font-weight: 700; color: #fff; }
+  .stepper li.on { color: var(--text); }
+  .stepper li.on::before { background: var(--ok); }
+  .stepper li.on .dot { background: var(--ok); border-color: var(--ok); }
+  .stepper li.on .dot::after { content: "\2713"; }
+  .stepper li.atual { font-weight: 600; }
+  .stepper li.atual .dot { box-shadow: 0 0 0 4px var(--ok-bg); }
+  .stepper.warn li.atual .dot { background: var(--warn); border-color: var(--warn); box-shadow: 0 0 0 4px var(--warn-bg); }
+  .stepper.warn li.on::before { background: var(--warn); }
+  .ultima { background: var(--bg); border-radius: 10px; padding: 12px 14px; margin-top: 14px; }
+  .ultima .rot { font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .ultima .st { font-weight: 650; }
+  .ultima .ds { font-size: 14.5px; }
+  .ultima .mt { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+  .info { margin: 14px 0 0; display: grid; gap: 2px; color: var(--muted); font-size: 14px; }
+  .info b { color: var(--text); font-weight: 600; }
+  details.hist { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  details.hist summary { cursor: pointer; color: var(--brand); font-weight: 600; font-size: 14.5px; list-style: none; }
+  details.hist summary::-webkit-details-marker { display: none; }
+  details.hist summary::before { content: "\25B8  "; }
+  details.hist[open] summary::before { content: "\25BE  "; }
+  .timeline { list-style: none; margin: 16px 0 0; padding: 0 0 0 18px; border-left: 2px solid var(--line); }
+  .timeline li { position: relative; padding: 0 0 16px 0; }
+  .timeline li:last-child { padding-bottom: 0; }
+  .timeline li::before { content: ""; position: absolute; left: -25px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: #c4c9d2; border: 2px solid #fff; }
+  .timeline li:first-child::before { background: var(--brand); }
+  .t-status { font-weight: 600; font-size: 15px; }
+  .t-desc { font-size: 14px; }
+  .t-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  /* Menu principal */
+  .menu { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+  .opcao { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 22px 20px; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; font: inherit; color: var(--text); cursor: pointer; box-shadow: 0 1px 2px rgba(16,24,40,.04); text-decoration: none; }
+  .opcao.largo { grid-column: 1 / -1; }
+  .opcao:hover, .opcao:focus-visible { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(29,78,216,.12); outline: none; }
+  .opcao .ico { width: 44px; height: 44px; border-radius: 12px; background: var(--run-bg); color: var(--brand); display: grid; place-items: center; margin-bottom: 6px; }
+  .opcao .tit { font-size: 18px; font-weight: 700; }
+  .opcao .desc { color: var(--muted); font-size: 14px; }
+  .voltar { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px; padding: 6px 10px 6px 6px; border: 0; background: none; color: var(--brand); font: inherit; font-weight: 600; font-size: 14.5px; cursor: pointer; border-radius: 8px; }
+  .voltar:hover { background: var(--run-bg); }
+  .abas { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: -4px 0 16px; }
+  .aba { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 16px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; margin-bottom: -1px; }
+  .aba.ativa { color: var(--text, inherit); border-bottom-color: var(--accent, #2563eb); }
+  .predef { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+  .predef button { border: 1.5px solid var(--line); background: #fff; color: var(--text); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+  .predef button:hover { border-color: var(--brand); color: var(--brand); }
+  .predef button.sel { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .marca-img { display: block; height: 40px; width: auto; max-width: 160px; border-radius: 10px; }
+  .tabbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+  .tabbar button { border: 1.5px solid var(--line); background: #fff; color: var(--text); border-radius: 999px; padding: 5px 13px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .tabbar button b { font-weight: 700; margin-left: 4px; color: var(--muted); }
+  .tabbar button.sel { background: var(--text); border-color: var(--text); color: #fff; }
+  .tabbar button.sel b { color: #fff; }
+  table.tabnf { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,40,.04); margin-bottom: 20px; }
+  .tabnf th { text-align: left; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 10px 14px; background: #f8f9fb; border-bottom: 1px solid var(--line); }
+  .tabnf td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; font-size: 14.5px; }
+  .tabnf tr.lin { cursor: pointer; }
+  .tabnf tr.lin:hover td { background: #f8f9fb; }
+  .tabnf tr:last-child td { border-bottom: 0; }
+  .tabnf td.nfc { font-weight: 700; font-size: 16px; white-space: nowrap; }
+  .tabnf td.sec { color: var(--muted); font-size: 13.5px; }
+  .tabnf td.seta { width: 28px; color: var(--muted); text-align: right; }
+  .tabnf tr.lin.aberta td.seta { transform: none; }
+  .tabnf tr.det > td { background: #fbfbfc; padding: 14px; }
+  .tabnf tr.det .item { margin: 0; box-shadow: none; }
+  .tabnf tr.lin.p-ok td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
+  .tabnf tr.lin.p-warn td:first-child { box-shadow: inset 4px 0 0 #d97706; }
+  .tabnf tr.lin.p-err td:first-child { box-shadow: inset 4px 0 0 var(--err); }
+  .tabnf tr.lin.p-run td:first-child { box-shadow: inset 4px 0 0 var(--run); }
+  .tabnf tr.lin.p-off td:first-child { box-shadow: inset 4px 0 0 #c4c9d2; }
+  @media (max-width: 620px) { .tabnf .c-emp, .tabnf .c-ult { display: none; } .tabnf td, .tabnf th { padding: 10px; } }
+  .resTab[hidden] { display: none; }
+  .nota-transp { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+  .painel h2 { font-size: 18px; margin: 0 0 14px; }
+
+  /* Consulta de CNPJ */
+  .cnpj-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 14px; }
+  .cnpj-dado { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .cnpj-dado .rotulo { color: var(--muted); font-size: 12px; }
+  .cnpj-dado .valor { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .cnpj-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  button.secundario { border: 1px solid var(--line); background: #fff; color: var(--text); border-radius: 9px; padding: 9px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.secundario:hover { border-color: var(--brand); color: var(--brand); }
+  .status-cnpj { margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .status-cnpj.erro { color: var(--err); }
+  .status-cnpj.sucesso { color: var(--ok); }
+  .cnpj-sec-tit { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 22px 0 0; font-weight: 700; }
+  .cnpj-sec-tit + .cnpj-grid { margin-top: 10px; }
+  .cnpj-lista { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+  .cnpj-lista li { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 14px; overflow-wrap: anywhere; }
+  .cnpj-lista li small { display: block; color: var(--muted); font-size: 12.5px; }
+  @media (max-width: 520px) {
+    main { padding-top: 24px; }
+    .campo { flex-direction: column; }
+    button.principal { width: 100%; }
+    .stepper li { font-size: 11.5px; }
+    .cnpj-grid { grid-template-columns: 1fr; }
+    .menu { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a class="logo-link" href="/" aria-label="UnionBoard" style="display:contents">
+      <img class="marca-img" src="/logo-unionboard" alt="UnionBoard" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+    <div class="logo" aria-hidden="true" hidden>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 7.5L12 12.5l8.7-5"/><path d="M12 22V12.5"/></svg>
+    </div>
+    </a>
+    <div>
+      <h1>Rastreio de cargas</h1>
+      <p id="subtitulo">O que você quer fazer?</p>
+    </div>
+  </header>
+
+  <div id="avisoArquivo" class="aviso" hidden>
+    Abra esta página pelo app.py, em <b>http://127.0.0.1:5000</b>. Aberta direto do arquivo, o navegador bloqueia a consulta ao SSW e ao CNPJ.ws.
+  </div>
+
+  <!-- MENU PRINCIPAL -->
+  <section id="viewMenu" class="view" aria-label="Menu principal">
+    <div class="menu">
+      <button type="button" class="opcao" data-ir="rastrear">
+        <span class="ico" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.3 7.5L12 12.5l8.7-5"/><path d="M12 22V12.5"/></svg>
+        </span>
+        <span class="tit">Rastrear carga</span>
+        <span class="desc">Consulte onde está a mercadoria pelo número da NF-e.</span>
+      </button>
+      <button type="button" class="opcao" data-ir="cnpj">
+        <span class="ico" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
+        </span>
+        <span class="tit">Consultar CNPJ</span>
+        <span class="desc">Veja os dados cadastrais de uma empresa (CNPJ.ws).</span>
+      </button>
+      <a class="opcao largo" href="/dashboard">
+        <span class="ico" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+        </span>
+        <span class="tit">Dashboard Mercado Livre</span>
+        <span class="desc">Anúncios, preços, fotos, pedidos, visitas, perguntas e reputação da sua conta.</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- RASTREAR -->
+  <section id="viewRastrear" class="view" hidden>
+    <button type="button" class="voltar" data-ir="">&#8592; Voltar ao menu</button>
+    <form id="form" class="painel" autocomplete="off">
+      <div class="abas" id="abasTransp" role="tablist" aria-label="Transportadora">
+        <button type="button" role="tab" data-t="trm" class="aba ativa">TRM</button>
+        <button type="button" role="tab" data-t="lillog" class="aba">LilLog</button>
+        <button type="button" role="tab" data-t="tempo" class="aba">Tempo Real</button>
+        <button type="button" role="tab" data-t="jamef" class="aba">JAMEF</button>
+      </div>
+      <label>Empresa (CNPJ do remetente)</label>
+      <div class="predef" id="predef" role="radiogroup" aria-label="Empresa"></div>
+      <label for="nfs">Número da NF-e</label>
+      <div class="campo">
+        <input type="text" id="nfs" inputmode="numeric" placeholder="Ex.: 2263">
+        <button type="submit" id="btn" class="principal">Rastrear</button>
+      </div>
+      <p class="ajuda">Para várias notas, separe por vírgula ou espaço. <span id="ajudaTransp"></span></p>
+      <div id="recentes" class="recentes" hidden></div>
+    </form>
+    <div id="res_trm" class="resTab" aria-live="polite"></div>
+    <div id="res_lillog" class="resTab" aria-live="polite" hidden></div>
+    <div id="res_tempo" class="resTab" aria-live="polite" hidden></div>
+    <div id="res_jamef" class="resTab" aria-live="polite" hidden></div>
+  </section>
+
+  <!-- CONSULTAR CNPJ -->
+  <section id="viewCnpj" class="view" hidden>
+    <button type="button" class="voltar" data-ir="">&#8592; Voltar ao menu</button>
+    <div class="painel">
+      <label for="cnpj">CNPJ da empresa</label>
+      <div class="campo">
+        <input type="text" id="cnpj" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" aria-describedby="ajudaCnpj" autocomplete="off">
+        <button type="button" id="btnCnpj" class="principal">Consultar CNPJ</button>
+      </div>
+      <p id="ajudaCnpj" class="ajuda">Consulta cadastral pela CNPJ.ws. A API pública permite até 3 consultas por minuto.</p>
+    </div>
+    <div id="resultadoCnpj" aria-live="polite"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var ENDPOINT = "/api/rastrear-publico";
+  var CNPJ_ENDPOINT = "/api/consultar-cnpj";
+  var EMPRESAS = [
+    { nome: "Show de Imagem", cnpj: "04340772000123" },
+    { nome: "BrasilTouch", cnpj: "38364978000105" },
+    { nome: "Chinatouch", cnpj: "69735709000131" }
+  ];
+  var ETAPAS = ["Emitido", "Em trânsito", "Saiu para entrega", "Entregue"];
+  var $ = function (id) { return document.getElementById(id); };
+
+  function el(tag, cls, txt) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt !== undefined && txt !== null) e.textContent = txt;
+    return e;
+  }
+  function lerPref(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function salvarPref(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  if (location.protocol === "file:") $("avisoArquivo").hidden = false;
+
+  // ---------- navegação entre menu e telas ----------
+  var TELAS = {
+    "": { view: "viewMenu", sub: "O que você quer fazer?", foco: null },
+    rastrear: { view: "viewRastrear", sub: "Digite o número da NF-e e veja onde está a sua carga.", foco: "nfs" },
+    cnpj: { view: "viewCnpj", sub: "Consulte os dados cadastrais de uma empresa pelo CNPJ.", foco: "cnpj" }
+  };
+  function telaAtual() {
+    var h = location.hash.replace(/^#/, "");
+    return TELAS.hasOwnProperty(h) ? h : "";
+  }
+  function mostrarTela() {
+    var chave = telaAtual();
+    Object.keys(TELAS).forEach(function (k) { $(TELAS[k].view).hidden = (k !== chave); });
+    $("subtitulo").textContent = TELAS[chave].sub;
+    if (TELAS[chave].foco) $(TELAS[chave].foco).focus();
+    window.scrollTo(0, 0);
+  }
+  function irPara(chave) {
+    if (chave) location.hash = chave;
+    else if (location.hash) {
+      // volta ao menu sem deixar "#" sobrando na URL
+      history.pushState(null, "", location.pathname + location.search);
+      mostrarTela();
+    }
+  }
+  document.addEventListener("click", function (e) {
+    var alvo = e.target.closest ? e.target.closest("[data-ir]") : null;
+    if (alvo) irPara(alvo.getAttribute("data-ir"));
+  });
+  window.addEventListener("hashchange", mostrarTela);
+  window.addEventListener("popstate", mostrarTela);
+  mostrarTela();
+
+  // ---------- NF-e recentes ----------
+  function lerRecentes() {
+    try { var r = JSON.parse(lerPref("rastreio_recentes") || "[]"); return Array.isArray(r) ? r : []; }
+    catch (e) { return []; }
+  }
+  function guardarRecentes(nfs) {
+    var lista = nfs.concat(lerRecentes().filter(function (x) { return nfs.indexOf(x) === -1; })).slice(0, 6);
+    salvarPref("rastreio_recentes", JSON.stringify(lista));
+    mostrarRecentes();
+  }
+  function mostrarRecentes() {
+    var box = $("recentes"), lista = lerRecentes();
+    box.textContent = ""; box.hidden = !lista.length;
+    if (!lista.length) return;
+    box.appendChild(el("span", null, "Recentes:"));
+    lista.forEach(function (nf) {
+      var b = el("button", "chip", nf); b.type = "button";
+      b.addEventListener("click", function () {
+        $("nfs").value = nf;
+        if ($("form").requestSubmit) $("form").requestSubmit();
+        else rastrear({ preventDefault: function () {} });
+      });
+      box.appendChild(b);
+    });
+  }
+  mostrarRecentes();
+
+  function lerNfs(texto) {
+    var vistos = {};
+    return texto.split(/[\s,;]+/).map(function (t) { return t.replace(/\D/g, ""); })
+      .filter(function (t) { if (!t || vistos[t]) return false; vistos[t] = true; return true; });
+  }
+  function esperar(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function consultarUma(cnpj, nf) {
+    var resp;
+    try {
+      resp = await fetch(ENDPOINT, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnpj: cnpj, nro_nf: nf })
+      });
+    } catch (e) { return { tipo: "erro", msg: "Sem conexão com o app.py. Ele está rodando?" }; }
+    var txt = await resp.text(), dados = null;
+    try { dados = JSON.parse(txt); } catch (e) {}
+    if (dados && dados.sucesso === true && Array.isArray(dados.eventos)) return { tipo: "ok", dados: dados };
+    if (dados && dados.sucesso === false && resp.status === 200) return { tipo: "vazio" };
+    var msg = dados && (dados.mensagem || dados.erro);
+    return { tipo: "erro", msg: msg || ("Resposta inesperada (HTTP " + resp.status + ")") };
+  }
+  // JAMEF: só é consultada se o .env tiver usuário, senha e o caminho do rastreio
+  var JAMEF_ATIVO = null;
+  async function jamefAtiva() {
+    if (JAMEF_ATIVO === null) {
+      try {
+        var d = await (await fetch("/api/jamef/status")).json();
+        JAMEF_ATIVO = !!(d.configurado && d.rastreio_configurado);
+      } catch (e) { JAMEF_ATIVO = false; }
+    }
+    return JAMEF_ATIVO;
+  }
+  async function consultarJamef(cnpj, nf) {
+    var resp;
+    try {
+      resp = await fetch("/api/jamef/rastrear", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnpj: cnpj, nf: nf })
+      });
+    } catch (e) { return { tipo: "erro", msg: "Sem conexão com o app.py. Ele está rodando?" }; }
+    var dados = await resp.json().catch(function () { return null; });
+    if (dados && dados.sucesso === true && Array.isArray(dados.eventos)) return { tipo: "ok", dados: dados };
+    if (resp.status === 200) return { tipo: "vazio" };
+    return { tipo: "erro", msg: "JAMEF: " + ((dados && dados.mensagem) || ("HTTP " + resp.status)) };
+  }
+  var ABA = "trm";
+  var TEXTOS = {
+    trm: "TRM: consulta pelo SSW.",
+    lillog: "LilLog: consulta pelo SSW.",
+    tempo: "Tempo Real Transportes: consulta pelo SSW.",
+    jamef: "JAMEF: consulta direto na API da JAMEF."
+  };
+  var NOMES = { trm: "TRM", lillog: "LilLog", tempo: "Tempo Real Transportes" };
+  var PADROES = { trm: /trm/i, lillog: /lil/i, tempo: /tempo\s*real/i };
+  var EMPRESA_SEL = "todas";  // predefinição de empresa: "todas" ou o CNPJ
+  function empresasAtivas() {
+    var f = EMPRESAS.filter(function (e) { return e.cnpj === EMPRESA_SEL; });
+    return f.length ? f : EMPRESAS;
+  }
+  function textoEmpresas() {
+    var a = empresasAtivas();
+    return a.length === 1 ? "no CNPJ da " + a[0].nome : "nos " + a.length + " CNPJs";
+  }
+  function modoTransp() { return ABA === "jamef" ? "jamef" : "ssw"; }
+  async function buscar(nf) {
+    var erro = null, modo = modoTransp(), EMP = empresasAtivas();
+    if (modo === "jamef" && !(await jamefAtiva())) {
+      return { tipo: "erro", msg: "A JAMEF não está configurada. Preencha JAMEF_USUARIO e JAMEF_SENHA no .env e reinicie o app." };
+    }
+    for (var i = 0; modo !== "jamef" && i < EMP.length; i++) {
+      var r = await consultarUma(EMP[i].cnpj, nf);
+      if (r.tipo === "ok") return { tipo: "ok", dados: r.dados, empresa: EMP[i] };
+      if (r.tipo === "erro") erro = r.msg;
+      if (i < EMP.length - 1) await esperar(300);
+    }
+    if (modo !== "ssw" && await jamefAtiva()) {
+      for (var j = 0; j < EMP.length; j++) {
+        var rj = await consultarJamef(EMP[j].cnpj, nf);
+        if (rj.tipo === "ok") return { tipo: "ok", dados: rj.dados, empresa: EMP[j] };
+        if (rj.tipo === "erro") { erro = rj.msg; break; }  // erro de login/limite: não adianta repetir com o outro CNPJ
+        if (j < EMP.length - 1) await esperar(300);
+      }
+    }
+    return erro ? { tipo: "erro", msg: erro } : { tipo: "vazio" };
+  }
+
+  // ---------- interpretação do status ----------
+  function limparStatus(s) { return String(s || "").replace(/\s*\(\d+\)\s*$/, "").trim(); }
+  // entrega concluída: SSW ("entregue", "entrega realizada") e JAMEF ("informado realização entrega", "documento assinado")
+  var ENTREGUE = /entregue|entrega\s+realizada|realiza[cç][aã]o\s+(da\s+)?entrega|documento\s+assinado|comprovante\s+(de\s+)?entrega/i;
+  // olha a carga toda: se algum evento indica entrega concluída, ela está entregue, mesmo que depois venha um registro administrativo
+  function classificarCarga(eventos) {
+    var ultimo = eventos[eventos.length - 1];
+    for (var i = eventos.length - 1; i >= 0; i--) {
+      if (ENTREGUE.test(eventos[i].status || "") && !/n[aã]o\s+entregue/i.test(eventos[i].status || "")) return { etapa: 4, rotulo: "Entregue", cls: "ok" };
+    }
+    return classificar(ultimo);
+  }
+  function classificar(ev) {
+    var s = (ev.status || "") + " " + (ev.descricao || "");
+    if (/n[aã]o\s+entregue|ocorr[eê]ncia|avaria|extravio|devolu|recus|ausente|reentrega|sinistro|roubo|cancel/i.test(s))
+      return { etapa: 0, rotulo: "Atenção", cls: "warn", problema: true };
+    var st = ev.status || "";
+    if (ENTREGUE.test(st)) return { etapa: 4, rotulo: "Entregue", cls: "ok" };
+    if (/sa[ií]da\s+para\s+entrega|saiu\s+para\s+entrega|rota\s+de\s+entrega|em\s+rota/i.test(st)) return { etapa: 3, rotulo: "Saiu para entrega", cls: "run" };
+    if (/sa[ií]da|chegada|transfer|tr[aâ]nsito|coletad/i.test(st)) return { etapa: 2, rotulo: "Em trânsito", cls: "run" };
+    if (/emitid|documento|coleta|iniciado|in[ií]cio/i.test(st)) return { etapa: 1, rotulo: "Emitido", cls: "run" };
+    return { etapa: 0, rotulo: limparStatus(st) || "Em andamento", cls: "run" };
+  }
+
+  // ---------- exibição do rastreamento ----------
+  function montarStepper(etapa, problema) {
+    var ol = el("ol", "stepper" + (problema ? " warn" : ""));
+    ETAPAS.forEach(function (nome, i) {
+      var li = el("li");
+      if (i < etapa) li.className = "on";
+      if (i === etapa - 1) li.className += " atual";
+      li.appendChild(el("span", "dot"));
+      li.appendChild(el("span", null, nome));
+      ol.appendChild(li);
+    });
+    return ol;
+  }
+  function linhaInfo(rotulo, valor) {
+    var p = el("div"); p.appendChild(document.createTextNode(rotulo + " "));
+    p.appendChild(el("b", null, valor)); return p;
+  }
+  // previsão: devolve {txt, atrasada} ou null. Só marca atraso se a carga ainda não foi entregue.
+  function previsaoDe(carga, entregue) {
+    var p = carga && carga.previsao_entrega;
+    if (!p || !/^\d{4}-\d{2}-\d{2}$/.test(p)) return null;
+    var txt = p.split("-").reverse().join("/");
+    var hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    var d = new Date(p + "T00:00:00"), dias = Math.round((d - hoje) / 86400000);
+    var atrasada = !entregue && dias < 0, nota = "";
+    if (!entregue) nota = dias < 0 ? " (atrasada " + (-dias) + (dias === -1 ? " dia)" : " dias)") : dias === 0 ? " (hoje)" : dias === 1 ? " (amanhã)" : "";
+    return { txt: txt, nota: nota, atrasada: atrasada };
+  }
+  function montarOk(nf, res, abrir) {
+    var eventos = res.dados.eventos, carga = res.dados.carga || {};
+    var ultimo = eventos[eventos.length - 1], c = classificarCarga(eventos);
+    var box = el("div", "item"), linha = el("div", "linha"), principal = el("div");
+    principal.appendChild(el("div", "nf", "NF " + nf));
+    var partes = [res.empresa.nome];
+    if (carga.transportadora) partes.push(carga.transportadora);
+    principal.appendChild(el("div", "sub", partes.join(" · ")));
+    linha.appendChild(principal); linha.appendChild(el("span", "pill " + c.cls, c.rotulo)); box.appendChild(linha);
+    if (c.etapa > 0 || c.problema) {
+      var etapaAtual = c.problema ? etapaAnterior(eventos) : c.etapa;
+      if (etapaAtual > 0) box.appendChild(montarStepper(etapaAtual, c.problema));
+    }
+    var ult = el("div", "ultima");
+    ult.appendChild(el("div", "rot", "Última atualização"));
+    ult.appendChild(el("div", "st", limparStatus(ultimo.status)));
+    if (ultimo.descricao) ult.appendChild(el("div", "ds", ultimo.descricao));
+    ult.appendChild(el("div", "mt", [ultimo.data_hora, ultimo.cidade].filter(Boolean).join(" · ")));
+    box.appendChild(ult);
+    var info = el("div", "info");
+    if (carga.destinatario) info.appendChild(linhaInfo("Destinatário:", carga.destinatario));
+    if (carga.telefone) info.appendChild(linhaInfo("Telefone da transportadora:", carga.telefone));
+    if (carga.email) info.appendChild(linhaInfo("E-mail:", carga.email));
+    var pv = previsaoDe(carga, c.etapa === 4);
+    if (pv) { var li = linhaInfo("Previsão de entrega:", pv.txt + pv.nota); if (pv.atrasada) li.style.color = "#b45309"; info.appendChild(li); }
+    if (carga.comprovante_entrega && /^https:\/\//.test(carga.comprovante_entrega)) {
+      var lc = el("div", "linha-info"), a = el("a", null, "Abrir comprovante de entrega");
+      a.href = carga.comprovante_entrega; a.target = "_blank"; a.rel = "noopener";
+      lc.appendChild(a); info.appendChild(lc);
+    }
+    if (info.children.length) box.appendChild(info);
+    var det = el("details", "hist"); if (abrir) det.open = true;
+    det.appendChild(el("summary", null, "Histórico completo (" + eventos.length + (eventos.length === 1 ? " evento)" : " eventos)")));
+    var ol = el("ol", "timeline");
+    for (var i = eventos.length - 1; i >= 0; i--) {
+      var ev = eventos[i], li = el("li");
+      li.appendChild(el("div", "t-status", limparStatus(ev.status)));
+      if (ev.descricao) li.appendChild(el("div", "t-desc", ev.descricao));
+      li.appendChild(el("div", "t-meta", [ev.data_hora, ev.cidade, ev.unidade].filter(Boolean).join(" · ")));
+      ol.appendChild(li);
+    }
+    det.appendChild(ol); box.appendChild(det); return box;
+  }
+  function etapaAnterior(eventos) {
+    for (var i = eventos.length - 1; i >= 0; i--) {
+      var c = classificar(eventos[i]);
+      if (!c.problema && c.etapa > 0) return c.etapa;
+    }
+    return 0;
+  }
+  function montarSimples(nf, rotuloPill, classe, subtexto) {
+    var box = el("div", "item"), linha = el("div", "linha"), principal = el("div");
+    principal.appendChild(el("div", "nf", "NF " + nf));
+    if (subtexto) principal.appendChild(el("div", "sub", subtexto));
+    linha.appendChild(principal); linha.appendChild(el("span", "pill " + classe, rotuloPill)); box.appendChild(linha);
+    return box;
+  }
+  function avisoTransp(box, res, aba) {
+    var t = (res.dados.carga && res.dados.carga.transportadora) || "";
+    if (!t || aba === "jamef" || PADROES[aba].test(t)) return;
+    var outra = "";
+    for (var k in PADROES) if (PADROES[k].test(t)) outra = k;
+    var msg = "Atenção: esta NF é da transportadora " + t + ", não da " + NOMES[aba] + "." + (outra ? " Veja na aba " + NOMES[outra] + "." : "");
+    box.appendChild(el("p", "nota-transp", msg));
+  }
+  // várias NFs: uma linha por nota, com filtro por situação; clicar na linha abre o histórico
+  var FILTROS = [["todas", "Todas"], ["andamento", "Em andamento"], ["entregue", "Entregues"], ["problema", "Com ocorrência"], ["nao", "Não localizadas"]];
+  function grupoDe(res, c) {
+    if (res.tipo === "vazio") return "nao";
+    if (res.tipo === "erro") return "nao";
+    if (c && c.problema) return "problema";
+    if (c && c.etapa === 4) return "entregue";
+    return "andamento";
+  }
+  async function rastrearTabela(nfs, area, aba) {
+    var linhas = [], filtro = "todas";
+    var barra = el("div", "tabbar"), tabela = el("table", "tabnf"), cab = el("thead"), corpo = el("tbody");
+    var tr0 = el("tr");
+    [["NF", ""], ["Empresa / transportadora", "c-emp"], ["Situação", ""], ["Previsão", "c-prev"], ["Última atualização", "c-ult"], ["", ""]].forEach(function (c) { tr0.appendChild(el("th", c[1], c[0])); });
+    cab.appendChild(tr0); tabela.appendChild(cab); tabela.appendChild(corpo);
+    area.appendChild(barra); area.appendChild(tabela);
+    function contar(g) { return linhas.filter(function (l) { return g === "todas" || l.grupo === g; }).length; }
+    function desenharBarra() {
+      barra.textContent = "";
+      FILTROS.forEach(function (f) {
+        var n = contar(f[0]); if (f[0] !== "todas" && f[0] !== filtro && !n) return;
+        var b = el("button", f[0] === filtro ? "sel" : "", f[1]); b.type = "button"; b.appendChild(el("b", null, String(n)));
+        b.addEventListener("click", function () { filtro = f[0]; aplicar(); });
+        barra.appendChild(b);
+      });
+    }
+    function aplicar() {
+      linhas.forEach(function (l) {
+        var ver = filtro === "todas" || l.grupo === filtro;
+        l.tr.hidden = !ver; l.det.hidden = !ver || !l.aberta;
+      });
+      desenharBarra();
+    }
+    for (var i = 0; i < nfs.length; i++) {
+      var nf = nfs[i], tr = el("tr", "lin p-off"), det = el("tr", "det"), dtd = el("td"); dtd.colSpan = 6; det.appendChild(dtd); det.hidden = true;
+      var l = { tr: tr, det: det, grupo: "andamento", aberta: false };
+      tr.appendChild(el("td", "nfc", nf)); tr.appendChild(el("td", "sec c-emp", textoEmpresas()));
+      var tdp = el("td"); tdp.appendChild(el("span", "pill off", "Consultando…")); tr.appendChild(tdp);
+      tr.appendChild(el("td", "sec c-prev", "")); tr.appendChild(el("td", "sec c-ult", "")); tr.appendChild(el("td", "seta", ""));
+      corpo.appendChild(tr); corpo.appendChild(det); linhas.push(l); desenharBarra();
+      var res = await buscar(nf), c = null, cls = "off", rotulo, emp, ult = "", detalhe, prevTxt = "", prevAtr = false;
+      if (res.tipo === "ok") {
+        var ev = res.dados.eventos, u = ev[ev.length - 1]; c = classificarCarga(ev); cls = c.cls; rotulo = c.rotulo;
+        emp = res.empresa.nome + ((res.dados.carga && res.dados.carga.transportadora) ? " · " + res.dados.carga.transportadora : "");
+        ult = [u.data_hora, u.cidade].filter(Boolean).join(" · ");
+        var pv = previsaoDe(res.dados.carga, c.etapa === 4);
+        if (pv) { prevTxt = pv.txt + pv.nota; prevAtr = pv.atrasada; }
+        detalhe = montarOk(nf, res, true); avisoTransp(detalhe, res, aba);
+      } else if (res.tipo === "vazio") { rotulo = "Não localizada"; emp = "—"; detalhe = montarSimples(nf, "Não localizada", "off", "Não achei essa nota " + textoEmpresas() + ". Confira o número ou a transportadora escolhida."); }
+      else { rotulo = "Erro"; cls = "err"; emp = "—"; detalhe = montarSimples(nf, "Erro", "err", res.msg); }
+      l.grupo = grupoDe(res, c);
+      tr.className = "lin p-" + (c && c.problema ? "warn" : cls);
+      tr.children[1].textContent = emp; tr.children[3].textContent = prevTxt || "—"; if (prevAtr) { tr.children[3].style.color = "#b45309"; tr.children[3].style.fontWeight = "600"; }
+      tr.children[4].textContent = ult; tr.children[5].textContent = "▾";
+      tdp.textContent = ""; tdp.appendChild(el("span", "pill " + cls, rotulo));
+      dtd.appendChild(detalhe);
+      (function (l) { l.tr.addEventListener("click", function () { l.aberta = !l.aberta; l.det.hidden = !l.aberta; l.tr.children[5].textContent = l.aberta ? "▴" : "▾"; }); })(l);
+      aplicar();
+      if (i < nfs.length - 1) await esperar(400);
+    }
+  }
+  async function rastrear(ev) {
+    ev.preventDefault();
+    var nfs = lerNfs($("nfs").value), area = $("res_" + ABA), aba = ABA;
+    area.textContent = "";
+    if (!nfs.length) { area.appendChild(el("div", "aviso", "Digite o número da NF-e para rastrear.")); return; }
+    guardarRecentes(nfs);
+    var btn = $("btn"); btn.disabled = true; btn.textContent = "Consultando…";
+    if (nfs.length > 1) {
+      try { await rastrearTabela(nfs, area, aba); } finally { btn.disabled = false; btn.textContent = "Rastrear"; }
+      return;
+    }
+    try {
+      for (var i = 0; i < nfs.length; i++) {
+        var nf = nfs[i], marcador = montarSimples(nf, "Consultando…", "off", modoTransp() === "jamef" ? "Consultando a JAMEF" : "Procurando " + textoEmpresas());
+        area.appendChild(marcador);
+        var res = await buscar(nf), novo;
+        if (res.tipo === "ok") { novo = montarOk(nf, res, nfs.length === 1); avisoTransp(novo, res, aba); }
+        else if (res.tipo === "vazio") novo = montarSimples(nf, "Não localizada", "off", "Não achei essa nota " + textoEmpresas() + (modoTransp() === "jamef" ? " na JAMEF" : modoTransp() === "ssw" ? " no SSW" : "") + ". Confira o número ou a transportadora escolhida.");
+        else novo = montarSimples(nf, "Erro", "err", res.msg);
+        area.replaceChild(novo, marcador);
+        if (i < nfs.length - 1) await esperar(400);
+      }
+    } finally { btn.disabled = false; btn.textContent = "Rastrear"; }
+  }
+  $("form").addEventListener("submit", rastrear);
+  (function () {
+    var abas = document.querySelectorAll("#abasTransp .aba"), campos = {}, recentes = {};
+    function ir(t) {
+      campos[ABA] = $("nfs").value; ABA = t;
+      for (var k = 0; k < abas.length; k++) {
+        var on = abas[k].getAttribute("data-t") === t;
+        abas[k].classList.toggle("ativa", on); abas[k].setAttribute("aria-selected", on);
+        $("res_" + abas[k].getAttribute("data-t")).hidden = !on;
+      }
+      $("nfs").value = campos[t] || "";
+      $("ajudaTransp").textContent = TEXTOS[t];
+      try { localStorage.setItem("transp_aba", t); } catch (e) {}
+    }
+    for (var k = 0; k < abas.length; k++) abas[k].addEventListener("click", function () { ir(this.getAttribute("data-t")); });
+    var salvo = null; try { salvo = localStorage.getItem("transp_aba"); } catch (e) {}
+    ir(TEXTOS[salvo] ? salvo : "trm");
+    // predefinição de empresa
+    var box = $("predef"), salvaE = "todas"; try { salvaE = localStorage.getItem("empresa_pre") || "todas"; } catch (e) {}
+    EMPRESA_SEL = salvaE;
+    function chips() {
+      box.textContent = "";
+      [{ nome: "Todas", cnpj: "todas" }].concat(EMPRESAS).forEach(function (e) {
+        var b = document.createElement("button"); b.type = "button"; b.textContent = e.nome;
+        var on = e.cnpj === EMPRESA_SEL; b.className = on ? "sel" : ""; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", on);
+        b.addEventListener("click", function () { EMPRESA_SEL = e.cnpj; try { localStorage.setItem("empresa_pre", e.cnpj); } catch (x) {} chips(); });
+        box.appendChild(b);
+      });
+    }
+    chips();
+  })();
+
+  // ---------- consulta de CNPJ ----------
+  function formatarCnpj(valor) {
+    var n = String(valor || "").replace(/\D/g, "").slice(0, 14);
+    return n.replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  }
+  $("cnpj").addEventListener("input", function () {
+    var campo = $("cnpj");
+    var pos = campo.selectionStart;
+    // quantos dígitos existem antes do cursor (ignora pontos, barra e traço)
+    var digitosAntes = campo.value.slice(0, pos).replace(/\D/g, "").length;
+    campo.value = formatarCnpj(campo.value);
+    // reposiciona o cursor logo depois do mesmo número de dígitos
+    var novaPos = 0, contados = 0;
+    while (novaPos < campo.value.length && contados < digitosAntes) {
+      if (/\d/.test(campo.value.charAt(novaPos))) contados++;
+      novaPos++;
+    }
+    try { campo.setSelectionRange(novaPos, novaPos); } catch (e) {}
+  });
+  function campoCnpj(rotulo, valor) {
+    var d = el("div", "cnpj-dado");
+    d.appendChild(el("div", "rotulo", rotulo));
+    d.appendChild(el("div", "valor", valor || "Não informado"));
+    return d;
+  }
+  function fmtData(v) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v || "");
+    return m ? m[3] + "/" + m[2] + "/" + m[1] : (v || "");
+  }
+  function fmtMoeda(v) {
+    var n = parseFloat(v);
+    return isNaN(n) ? "" : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+  function fmtCep(v) {
+    var n = String(v || "").replace(/\D/g, "");
+    return n.length === 8 ? n.slice(0, 5) + "-" + n.slice(5) : (v || "");
+  }
+  function fmtFone(ddd, num) {
+    var d = String(ddd || "").replace(/\D/g, "").replace(/^0+/, ""), n = String(num || "").replace(/\D/g, "");
+    if (!n) return "";
+    var corpo = n.length > 8 ? n.slice(0, n.length - 4) + "-" + n.slice(-4) : n.length === 8 ? n.slice(0, 4) + "-" + n.slice(4) : n;
+    return (d ? "(" + d + ") " : "") + corpo;
+  }
+  function cnae(a) {
+    if (!a) return "";
+    return [a.subclasse, a.descricao].filter(Boolean).join(" - ");
+  }
+  function montarResultadoCnpj(dados) {
+    var est = dados.estabelecimento || {}, cidade = est.cidade || {}, estado = est.estado || {};
+    var pais = est.pais || {}, simples = dados.simples || {}, porte = dados.porte || {};
+    var nat = dados.natureza_juridica || {}, qual = dados.qualificacao_do_responsavel || {};
+    var situacao = est.situacao_cadastral || "Não informada";
+
+    var secoes = [
+      { titulo: "Dados cadastrais", campos: [
+        ["CNPJ", formatarCnpj(est.cnpj || "")], ["CNPJ raiz", dados.cnpj_raiz],
+        ["Razão social", dados.razao_social], ["Nome fantasia", est.nome_fantasia],
+        ["Tipo", est.tipo], ["Situação cadastral", situacao],
+        ["Data da situação cadastral", fmtData(est.data_situacao_cadastral)],
+        ["Motivo da situação", est.motivo_situacao_cadastral && (est.motivo_situacao_cadastral.descricao || String(est.motivo_situacao_cadastral))],
+        ["Situação especial", est.situacao_especial], ["Data da situação especial", fmtData(est.data_situacao_especial)],
+        ["Data de início da atividade", fmtData(est.data_inicio_atividade)],
+        ["Natureza jurídica", [nat.id, nat.descricao].filter(Boolean).join(" - ")],
+        ["Porte", porte.descricao], ["Capital social", fmtMoeda(dados.capital_social)],
+        ["Responsável federativo", dados.responsavel_federativo],
+        ["Qualificação do responsável", qual.descricao && qual.descricao.trim()],
+        ["Última atualização (empresa)", fmtData(dados.atualizado_em)],
+        ["Última atualização (estabelecimento)", fmtData(est.atualizado_em)]
+      ] },
+      { titulo: "Endereço", campos: [
+        ["Logradouro", [est.tipo_logradouro, est.logradouro].filter(Boolean).join(" ")],
+        ["Número", est.numero], ["Complemento", est.complemento], ["Bairro", est.bairro],
+        ["CEP", fmtCep(est.cep)], ["Cidade", cidade.nome],
+        ["Estado", [estado.nome, estado.sigla && "(" + estado.sigla + ")"].filter(Boolean).join(" ")],
+        ["País", pais.nome], ["Cidade no exterior", est.nome_cidade_exterior],
+        ["Código IBGE da cidade", cidade.ibge_id]
+      ] },
+      { titulo: "Contato", campos: [
+        ["Telefone 1", fmtFone(est.ddd1, est.telefone1)], ["Telefone 2", fmtFone(est.ddd2, est.telefone2)],
+        ["Fax", fmtFone(est.ddd_fax, est.fax)], ["E-mail", est.email]
+      ] },
+      { titulo: "Simples Nacional e MEI", campos: [
+        ["Optante pelo Simples", simples.simples], ["Data de opção (Simples)", fmtData(simples.data_opcao_simples)],
+        ["Data de exclusão (Simples)", fmtData(simples.data_exclusao_simples)],
+        ["MEI", simples.mei], ["Data de opção (MEI)", fmtData(simples.data_opcao_mei)],
+        ["Data de exclusão (MEI)", fmtData(simples.data_exclusao_mei)]
+      ] },
+      { titulo: "Atividade econômica principal", lista: est.atividade_principal ? [{ t: cnae(est.atividade_principal) }] : [] },
+      { titulo: "Atividades econômicas secundárias (" + (est.atividades_secundarias || []).length + ")",
+        lista: (est.atividades_secundarias || []).map(function (a) { return { t: cnae(a) }; }) },
+      { titulo: "Inscrições estaduais (" + (est.inscricoes_estaduais || []).length + ")",
+        lista: (est.inscricoes_estaduais || []).map(function (ie) {
+          var uf = ie.estado && ie.estado.sigla ? " (" + ie.estado.sigla + ")" : "";
+          return { t: ie.inscricao_estadual + uf, s: [ie.ativo ? "Ativa" : "Inativa", ie.atualizado_em && "atualizada em " + fmtData(ie.atualizado_em)].filter(Boolean).join(" · ") };
+        }) },
+      { titulo: "Sócios e administradores (" + (dados.socios || []).length + ")",
+        lista: (dados.socios || []).map(function (s) {
+          return { t: s.nome || "Sem nome", s: [
+            s.tipo, s.qualificacao_socio && s.qualificacao_socio.descricao && s.qualificacao_socio.descricao.trim(),
+            s.cpf_cnpj_socio && "CPF/CNPJ " + s.cpf_cnpj_socio,
+            s.data_entrada && "entrada em " + fmtData(s.data_entrada),
+            s.faixa_etaria, s.pais && s.pais.nome,
+            s.nome_representante && "representante: " + s.nome_representante
+          ].filter(Boolean).join(" · ") };
+        }) }
+    ];
+    if (dados.observacao) secoes.push({ titulo: "Observação", campos: [["Observação", dados.observacao]] });
+
+    var box = el("div", "item"), cab = el("div", "linha"), titulo = el("div");
+    titulo.appendChild(el("div", "nf", dados.razao_social || "Empresa consultada"));
+    titulo.appendChild(el("div", "sub", est.nome_fantasia || "Nome fantasia não informado"));
+    cab.appendChild(titulo);
+    cab.appendChild(el("span", "pill " + (/ativa/i.test(situacao) ? "ok" : "warn"), situacao));
+    box.appendChild(cab);
+
+    var linhasCopia = [];
+    secoes.forEach(function (sec) {
+      box.appendChild(el("h3", "cnpj-sec-tit", sec.titulo));
+      linhasCopia.push("", "== " + sec.titulo + " ==");
+      if (sec.campos) {
+        var grid = el("div", "cnpj-grid");
+        sec.campos.forEach(function (par) {
+          var v = par[1] === null || par[1] === undefined ? "" : String(par[1]);
+          grid.appendChild(campoCnpj(par[0], v));
+          linhasCopia.push(par[0] + ": " + (v || "Não informado"));
+        });
+        box.appendChild(grid);
+      } else {
+        var ul = el("ul", "cnpj-lista");
+        if (!sec.lista.length) { ul.appendChild(el("li", null, "Nenhuma informada")); linhasCopia.push("Nenhuma informada"); }
+        sec.lista.forEach(function (it) {
+          var li = el("li", null, it.t);
+          if (it.s) li.appendChild(el("small", null, it.s));
+          ul.appendChild(li);
+          linhasCopia.push("- " + it.t + (it.s ? " (" + it.s + ")" : ""));
+        });
+        box.appendChild(ul);
+      }
+    });
+    var textoCopia = linhasCopia.join("\n").trim();
+
+    var acoes = el("div", "cnpj-acoes"), copiar = el("button", "secundario", "Copiar todos os dados");
+    copiar.type = "button";
+    copiar.addEventListener("click", async function () {
+      try {
+        await navigator.clipboard.writeText(textoCopia);
+        setStatusCnpj("Dados copiados para a área de transferência.", "sucesso");
+      } catch (e) {
+        var area = el("textarea");
+        area.value = textoCopia; area.setAttribute("readonly", "");
+        area.style.position = "fixed"; area.style.opacity = "0";
+        document.body.appendChild(area); area.select();
+        var ok = false; try { ok = document.execCommand("copy"); } catch (err) {}
+        area.remove();
+        setStatusCnpj(ok ? "Dados copiados para a área de transferência." : "Não foi possível copiar automaticamente. Selecione e copie os dados manualmente.", ok ? "sucesso" : "erro");
+      }
+    });
+    acoes.appendChild(copiar); box.appendChild(acoes);
+    return box;
+  }
+  function setStatusCnpj(mensagem, classe) {
+    var s = $("statusCnpj");
+    if (!s) { s = el("div", "status-cnpj"); s.id = "statusCnpj"; $("resultadoCnpj").appendChild(s); }
+    s.className = "status-cnpj" + (classe ? " " + classe : "");
+    s.textContent = mensagem;
+  }
+  async function consultarCnpj() {
+    var cnpj = $("cnpj").value.replace(/\D/g, ""), btn = $("btnCnpj"), area = $("resultadoCnpj");
+    area.textContent = "";
+    if (cnpj.length !== 14) {
+      setStatusCnpj("Informe um CNPJ com 14 dígitos.", "erro");
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Consultando…";
+    setStatusCnpj("Consultando a base cadastral…");
+    try {
+      var resp = await fetch(CNPJ_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cnpj: cnpj })
+      });
+      var dados = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) {
+        var mensagem = dados.mensagem || dados.erro;
+        if (!mensagem) {
+          // sem mensagem JSON do nosso backend: a rota provavelmente não existe
+          mensagem = resp.status === 404
+            ? "O app.py em execução não tem a rota /api/consultar-cnpj. Feche e rode novamente o app.py atualizado."
+            : "Falha na consulta (HTTP " + resp.status + ").";
+        }
+        if (dados.detalhe) mensagem += " (" + dados.detalhe + ")";
+        if (dados.url) mensagem += " — URL consultada: " + dados.url;
+        throw new Error(mensagem);
+      }
+      area.textContent = "";
+      area.appendChild(montarResultadoCnpj(dados));
+      setStatusCnpj("Consulta concluída. Os dados podem ter defasagem em relação à Receita Federal.", "sucesso");
+    } catch (e) {
+      area.textContent = "";
+      setStatusCnpj(e.message || "Não foi possível consultar o CNPJ. Verifique se o app.py está em execução.", "erro");
+    } finally {
+      btn.disabled = false; btn.textContent = "Consultar CNPJ";
+    }
+  }
+  $("btnCnpj").addEventListener("click", consultarCnpj);
+  $("cnpj").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); consultarCnpj(); }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UnionBoard · Mercado Livre Analytics</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#f5f7fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#e6eaf0;--yellow:#ffe600;--nav:#17191f;--green:#16845b;--red:#c2413b;--blue:#3156d3}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}.sidebar{background:var(--nav);color:#fff;padding:24px 16px;display:flex;flex-direction:column;gap:28px}.brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800}.logo{display:grid;place-items:center;background:var(--yellow);color:#111;width:36px;height:36px;border-radius:10px;font-weight:900}.brand small{display:block;color:#a9afbd;font-size:11px;font-weight:500}.navlabel{color:#8991a2;text-transform:uppercase;font-size:10px;letter-spacing:1.4px;margin:0 12px 8px}.navitem{padding:11px 12px;border-radius:9px;color:#c8ced8;display:flex;gap:10px;align-items:center;margin:3px 0}.navitem.active{background:#2d3039;color:#fff}.navitem.active:before{content:"";width:4px;height:18px;background:var(--yellow);border-radius:4px;margin-left:-12px;margin-right:8px}.sidefoot{margin-top:auto;border-top:1px solid #343741;padding:16px 8px;color:#a9afbd;font-size:12px}.main{min-width:0;padding:26px clamp(16px,3vw,38px) 40px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}.eyebrow{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px;font-weight:700}.h1{font-size:28px;letter-spacing:-.8px;margin:5px 0;font-weight:800}.sub{color:var(--muted)}.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 13px;font-weight:650;cursor:pointer;color:var(--ink)}.btn.primary{background:var(--yellow);border-color:var(--yellow)}.btn:hover{filter:brightness(.97)}.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.field{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 11px;color:var(--ink);min-width:150px}.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;min-width:0;box-shadow:0 2px 8px #17203305}.kpihead{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;font-weight:650}.kpiicon{background:#f3f5f9;border-radius:8px;width:30px;height:30px;display:grid;place-items:center;color:#30384b}.value{font-size:27px;font-weight:800;letter-spacing:-.8px;margin:13px 0 3px}.kpinote{font-size:11px;color:var(--muted)}.layout2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:16px;margin-bottom:16px}.cardtitle{font-weight:750;font-size:15px;margin:0 0 4px}.carddesc{font-size:12px;color:var(--muted);margin-bottom:18px}.chartbox{height:245px;position:relative}.qualitylist{display:flex;flex-direction:column;gap:18px;margin-top:10px}.qualityrow{display:grid;grid-template-columns:100px 1fr 42px;gap:10px;align-items:center;font-size:12px}.bar{height:8px;border-radius:8px;background:#edf0f5;overflow:hidden}.bar span{display:block;height:100%;background:#3156d3;border-radius:8px}.qualityrow strong{text-align:right}.tablecard{padding:0;overflow:hidden}.tablehead{padding:19px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;white-space:nowrap}th{background:#fafbfc;color:#667085;text-align:left;font-size:10px;letter-spacing:.6px;text-transform:uppercase;padding:12px 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}td{padding:14px 16px;border-bottom:1px solid #edf0f4;font-size:12px}tr:last-child td{border-bottom:0}.adname{font-weight:700;font-size:12px}.id{font-size:10px;color:var(--muted);margin-top:3px}.pill{display:inline-flex;align-items:center;gap:5px;border-radius:30px;padding:5px 8px;font-size:10px;font-weight:750;background:#e7f7ef;color:#14764f}.dot{width:5px;height:5px;border-radius:50%;background:currentColor}.score{font-weight:800}.muted{color:var(--muted)}.empty{padding:35px;text-align:center;color:var(--muted)}.notice{background:#fff8d6;border:1px solid #f4e79a;border-radius:10px;padding:12px 14px;color:#615313;font-size:12px;margin-bottom:18px}.footnote{font-size:11px;color:var(--muted);margin-top:14px}.fileinput{display:none}.mobilemenu{display:none}
+@media(max-width:1050px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.layout2{grid-template-columns:1fr}.sidebar{width:200px}.app{grid-template-columns:200px minmax(0,1fr)}}
+@media(max-width:700px){.app{display:block}.sidebar{display:none}.main{padding:18px 12px}.topbar{align-items:flex-start;flex-direction:column}.h1{font-size:24px}.kpis{gap:8px}.card{padding:13px}.value{font-size:23px}.field{flex:1;min-width:130px}.tablehead{padding:15px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="logo">U</div><div>UnionBoard<small>MARKETPLACE INTELLIGENCE</small></div></div>
+  <div><div class="navlabel">Workspace</div><div class="navitem active">▦ &nbsp; Visão geral</div><div class="navitem">▤ &nbsp; Anúncios</div><div class="navitem">⌁ &nbsp; Tráfego e conversão</div><div class="navitem">◈ &nbsp; Rentabilidade</div><div class="navitem">◎ &nbsp; Oportunidades</div></div>
+  <div><div class="navlabel">Dados</div><div class="navitem">⇧ &nbsp; Importar planilha</div><div class="navitem">◷ &nbsp; Histórico de coletas</div></div>
+  <div class="sidefoot">MVP · Atualização manual<br>Mercado Livre · UnionBoard</div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div><div class="eyebrow">Marketplace / Mercado Livre</div><div class="h1">Visão geral</div><div class="sub">Acompanhe a performance dos anúncios da UnionBoard.</div></div>
+    <div class="actions"><button class="btn" id="sampleBtn">Restaurar exemplo</button><label class="btn primary" for="file">⇧ Importar CSV</label><input class="fileinput" id="file" type="file" accept=".csv,text/csv"></div>
+  </header>
+  <div class="notice"><strong>Modo demonstração:</strong> os números iniciais são fictícios e servem apenas para mostrar o layout. Importe um CSV para visualizar seus próprios dados. A importação CSV nesta versão é local, sem enviar os dados a um servidor.</div>
+  <section class="filters">
+    <input id="search" class="field" placeholder="Buscar anúncio ou ID...">
+    <select id="status" class="field"><option value="">Todos os status</option><option>Ativo</option><option>Pausado</option><option>Encerrado</option></select>
+    <select id="quality" class="field"><option value="">Todas as qualidades</option><option value="low">Abaixo de 60</option><option value="mid">60 a 79</option><option value="high">80 ou mais</option></select>
+    <select id="sort" class="field"><option value="sales">Ordenar: vendas</option><option value="visits">Ordenar: visitas</option><option value="conversion">Ordenar: conversão</option><option value="quality">Ordenar: qualidade</option><option value="price">Ordenar: preço</option></select>
+  </section>
+  <section class="kpis">
+    <div class="card"><div class="kpihead"><span>VENDAS REGISTRADAS</span><span class="kpiicon">↗</span></div><div class="value" id="kSales">10</div><div class="kpinote">Soma dos registros importados</div></div>
+    <div class="card"><div class="kpihead"><span>VISITAS</span><span class="kpiicon">◉</span></div><div class="value" id="kVisits">569</div><div class="kpinote">Conforme os dados da coleta</div></div>
+    <div class="card"><div class="kpihead"><span>CONVERSÃO ESTIMADA</span><span class="kpiicon">％</span></div><div class="value" id="kConversion">1,76%</div><div class="kpinote">Vendas ÷ visitas · proxy</div></div>
+    <div class="card"><div class="kpihead"><span>QUALIDADE MÉDIA</span><span class="kpiicon">✳</span></div><div class="value" id="kQuality">64/100</div><div class="kpinote">Média simples dos anúncios</div></div>
+  </section>
+  <section class="layout2">
+    <div class="card"><div class="cardtitle">Visitas e vendas por anúncio</div><div class="carddesc">Comparação dos anúncios filtrados.</div><div class="chartbox"><canvas id="performanceChart"></canvas></div></div>
+    <div class="card"><div class="cardtitle">Distribuição de qualidade</div><div class="carddesc">Quantidade de anúncios por faixa.</div><div class="chartbox"><canvas id="qualityChart"></canvas></div></div>
+  </section>
+  <section class="card tablecard">
+    <div class="tablehead"><div><div class="cardtitle">Desempenho dos anúncios</div><div class="carddesc" style="margin:4px 0 0">Use filtros para encontrar oportunidades de melhoria.</div></div><div class="muted" id="rowCount">2 anúncios</div></div>
+    <div class="tablewrap"><table><thead><tr><th>Anúncio / ID</th><th>Status</th><th>Preço</th><th>Visitas</th><th>Vendas</th><th>Conversão*</th><th>Qualidade</th><th>Vídeo</th><th>Método de envio</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  </section>
+  <div class="footnote">* Conversão estimada = vendas registradas ÷ visitas. Confirme se a coluna “Vendas” representa unidades, pedidos ou transações antes de usar este indicador para decisões. A aplicação não calcula lucro sem dados de custos.</div>
+</main>
+</div>
+<script>
+const example = [
+ {id:"MLBU1153710461",name:"Moldura Touch Screen Interativa UnionBoard 65 Polegadas",status:"Ativo",price:3493.64,visits:549,sales:7,quality:74,video:"Não",shipping:"Mercado Envios"},
+ {id:"MLBU1125374977",name:"Moldura Interativa UnionBoard 65 Polegadas",status:"Ativo",price:3489,visits:20,sales:3,quality:54,video:"Não",shipping:"Mercado Envios"}
+];
+let ads=[...example], perfChart, qualChart;
+const money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n);
+const num=n=>new Intl.NumberFormat('pt-BR').format(n);
+const pct=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+function normalizeStatus(v){v=(v||'').toString().toLowerCase();if(v.includes('paus'))return'Pausado';if(v.includes('encerr')||v.includes('final'))return'Encerrado';return v.includes('ativ')?'Ativo':(v||'Desconhecido')}
+function filtered(){
+ const q=document.getElementById('search').value.toLowerCase(), st=document.getElementById('status').value, ql=document.getElementById('quality').value, so=document.getElementById('sort').value;
+ let arr=ads.filter(a=>(!q||(a.name+' '+a.id).toLowerCase().includes(q))&&(!st||a.status===st)&&(!ql||(ql==='low'?a.quality<60:ql==='mid'?a.quality>=60&&a.quality<80:a.quality>=80)));
+ return arr.sort((a,b)=>so==='visits'?b.visits-a.visits:so==='conversion'?(b.sales/Math.max(1,b.visits))-(a.sales/Math.max(1,a.visits)):so==='quality'?b.quality-a.quality:so==='price'?b.price-a.price:b.sales-a.sales);
+}
+function render(){
+ const arr=filtered(), sales=arr.reduce((s,a)=>s+a.sales,0), visits=arr.reduce((s,a)=>s+a.visits,0), quality=arr.length?arr.reduce((s,a)=>s+a.quality,0)/arr.length:0;
+ document.getElementById('kSales').textContent=num(sales);document.getElementById('kVisits').textContent=num(visits);document.getElementById('kConversion').textContent=pct(visits?sales/visits*100:0);document.getElementById('kQuality').textContent=Math.round(quality)+'/100';document.getElementById('rowCount').textContent=arr.length+' anúncio(s)';
+ document.getElementById('tbody').innerHTML=arr.map(a=>`<tr><td><div class="adname">${esc(a.name)}</div><div class="id">${esc(a.id)}</div></td><td><span class="pill"><span class="dot"></span>${esc(a.status)}</span></td><td>${money(a.price)}</td><td>${num(a.visits)}</td><td><strong>${num(a.sales)}</strong></td><td>${pct(a.visits?a.sales/a.visits*100:0)}</td><td><span class="score">${a.quality}/100</span></td><td>${esc(a.video||'—')}</td><td>${esc(a.shipping||'—')}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">Nenhum anúncio corresponde aos filtros.</td></tr>';
+ const labels=arr.map(a=>a.name.length>23?a.name.slice(0,23)+'…':a.name);
+ if(perfChart)perfChart.destroy();
+ perfChart=new Chart(document.getElementById('performanceChart'),{type:'bar',data:{labels,datasets:[{label:'Visitas',data:arr.map(a=>a.visits),backgroundColor:'#3156d3',borderRadius:5},{label:'Vendas',data:arr.map(a=>a.sales),backgroundColor:'#ffe600',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true,grid:{color:'#edf0f5'}},x:{grid:{display:false}}}}});
+ if(qualChart)qualChart.destroy();
+ const bands=[arr.filter(a=>a.quality<40).length,arr.filter(a=>a.quality>=40&&a.quality<60).length,arr.filter(a=>a.quality>=60&&a.quality<80).length,arr.filter(a=>a.quality>=80).length];
+ qualChart=new Chart(document.getElementById('qualityChart'),{type:'doughnut',data:{labels:['0–39','40–59','60–79','80–100'],datasets:[{data:bands,backgroundColor:['#e45b54','#f0ae44','#3156d3','#19a974'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom'}}}});
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function parseCSV(text){
+ const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());if(lines.length<2)throw Error('O arquivo precisa ter cabeçalho e ao menos uma linha.');
+ function split(line,sep){let out=[],v='',q=false;for(let i=0;i<line.length;i++){let c=line[i];if(c==='"'&&line[i+1]==='"'&&q){v+='"';i++}else if(c==='"')q=!q;else if(c===sep&&!q){out.push(v.trim());v=''}else v+=c}out.push(v.trim());return out}
+ const sep=(lines[0].split(';').length>lines[0].split(',').length)?';':',', headers=split(lines[0],sep).map(h=>h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''));
+ const find=names=>headers.findIndex(h=>names.some(n=>h.includes(n)));
+ const ix={id:find(['idmercadolivre','idml','id']),name:find(['nomedoanuncio','anuncio','produto']),status:find(['statusdoanuncio','status']),price:find(['preco','price']),visits:find(['quantidadedevisita','visitas','visit']),sales:find(['vendas','sales']),quality:find(['qualidade','quality']),video:find(['video']),shipping:find(['metododeenvio','envio','shipping'])};
+ if(ix.name<0||ix.visits<0||ix.sales<0)throw Error('Não encontrei as colunas obrigatórias. O CSV precisa conter nome do anúncio/produto, visitas e vendas. Confira os cabeçalhos.');
+ const val=(cols,i)=>i<0?'':(cols[i]||'');
+ const number=v=>{v=String(v||'0').replace(/[R$\s]/g,'');if(v.includes(',')&&v.includes('.'))v=v.replace(/\./g,'').replace(',','.');else if(v.includes(','))v=v.replace(',','.');return Number(v)||0};
+ return lines.slice(1).map(line=>{const c=split(line,sep);return{id:val(c,ix.id)||'SEM-ID',name:val(c,ix.name)||'Anúncio sem nome',status:normalizeStatus(val(c,ix.status)),price:number(val(c,ix.price)),visits:number(val(c,ix.visits)),sales:number(val(c,ix.sales)),quality:number(val(c,ix.quality)),video:val(c,ix.video)||'—',shipping:val(c,ix.shipping)||'—'}}).filter(a=>a.name);
+}
+document.querySelectorAll('#search,#status,#quality,#sort').forEach(el=>el.addEventListener('input',render));
+document.getElementById('sampleBtn').addEventListener('click',()=>{ads=[...example];document.getElementById('file').value='';render()});
+document.getElementById('file').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const data=parseCSV(await f.text());ads=data;render();document.querySelector('.notice').textContent='Importação concluída localmente: '+data.length+' anúncios carregados. Para importar outro arquivo, use o botão Importar CSV.'}catch(err){alert(err.message)}});
+render();
+</script>
+</body></html>
